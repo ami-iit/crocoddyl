@@ -73,6 +73,7 @@ void exposeCostImpulseCoPPosition();
 void exposeCostImpulseCoM();
 void exposeContact2D();
 void exposeContact3D();
+void exposeContact5D();
 void exposeContact6D();
 void exposeImpulse3D();
 void exposeImpulse6D();

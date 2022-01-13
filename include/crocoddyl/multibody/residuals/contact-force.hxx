@@ -43,6 +43,9 @@ void ResidualModelContactForceTpl<Scalar>::calc(const boost::shared_ptr<Residual
     case Contact3D:
       data->r = (d->contact->jMf.actInv(d->contact->f) - fref_).linear();
       break;
+    case Contact5D:
+      data->r = ((d->contact->jMf.actInv(d->contact->f) - fref_).toVector() ).topRows(5);
+      break;
     case Contact6D:
       data->r = (d->contact->jMf.actInv(d->contact->f) - fref_).toVector();
       break;

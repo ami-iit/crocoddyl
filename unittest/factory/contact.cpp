@@ -9,6 +9,7 @@
 #include "contact.hpp"
 #include "crocoddyl/multibody/contacts/contact-2d.hpp"
 #include "crocoddyl/multibody/contacts/contact-3d.hpp"
+#include "crocoddyl/multibody/contacts/contact-5d.hpp"
 #include "crocoddyl/multibody/contacts/contact-6d.hpp"
 #include "crocoddyl/core/utils/exception.hpp"
 
@@ -24,6 +25,9 @@ std::ostream& operator<<(std::ostream& os, const ContactModelTypes::Type& type) 
       break;
     case ContactModelTypes::ContactModel3D:
       os << "ContactModel3D";
+      break;
+    case ContactModelTypes::ContactModel5D:
+      os << "ContactModel5D";
       break;
     case ContactModelTypes::ContactModel6D:
       os << "ContactModel6D";
@@ -65,6 +69,9 @@ boost::shared_ptr<crocoddyl::ContactModelAbstract> ContactModelFactory::create(C
     case ContactModelTypes::ContactModel3D:
       contact = boost::make_shared<crocoddyl::ContactModel3D>(state, frame_id, Eigen::Vector3d::Zero(), nu);
       break;
+    case ContactModelTypes::ContactModel5D:
+      contact = boost::make_shared<crocoddyl::ContactModel5D>(state, frame_id, pinocchio::SE3(), nu);
+      break;
     case ContactModelTypes::ContactModel6D:
       contact = boost::make_shared<crocoddyl::ContactModel6D>(state, frame_id, pinocchio::SE3(), nu);
       break;
@@ -83,10 +90,12 @@ boost::shared_ptr<crocoddyl::ContactModelAbstract> create_random_contact() {
   }
   boost::shared_ptr<crocoddyl::ContactModelAbstract> contact;
   ContactModelFactory factory;
-  if (rand() % 3 == 0) {
+  if (rand() % 4 == 0) {
     contact = factory.create(ContactModelTypes::ContactModel2D, PinocchioModelTypes::RandomHumanoid);
-  } else if (rand() % 3 == 1) {
+  } else if (rand() % 4 == 1) {
     contact = factory.create(ContactModelTypes::ContactModel3D, PinocchioModelTypes::RandomHumanoid);
+  } else if (rand() % 4 == 2) {
+    contact = factory.create(ContactModelTypes::ContactModel5D, PinocchioModelTypes::RandomHumanoid);
   } else {
     contact = factory.create(ContactModelTypes::ContactModel6D, PinocchioModelTypes::RandomHumanoid);
   }

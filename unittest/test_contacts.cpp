@@ -17,6 +17,7 @@
 
 #include "crocoddyl/multibody/contacts/contact-2d.hpp"
 #include "crocoddyl/multibody/contacts/contact-3d.hpp"
+#include "crocoddyl/multibody/contacts/contact-5d.hpp"
 #include "crocoddyl/multibody/contacts/contact-6d.hpp"
 
 #include "factory/contact.hpp"
