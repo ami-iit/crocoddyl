@@ -16,6 +16,7 @@
 #include "crocoddyl/multibody/impulse-base.hpp"
 #include "crocoddyl/multibody/contacts/multiple-contacts.hpp"
 #include "crocoddyl/multibody/contacts/contact-3d.hpp"
+#include "crocoddyl/multibody/contacts/contact-5d.hpp"
 #include "crocoddyl/multibody/contacts/contact-6d.hpp"
 #include "crocoddyl/multibody/impulses/multiple-impulses.hpp"
 #include "crocoddyl/multibody/impulses/impulse-3d.hpp"
@@ -195,6 +196,16 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
             contact = it->second;
             break;
           }
+
+          ContactData5DTpl<Scalar>* d5d = dynamic_cast<ContactData5DTpl<Scalar>*>(it->second.get());
+          if (d5d != NULL) {
+            more_than_3_constraints = true;
+            found_contact = true;
+            contact = it->second;
+            throw_pretty("5d contact are defined");
+            break;
+          }
+
           ContactData6DTpl<Scalar>* d6d = dynamic_cast<ContactData6DTpl<Scalar>*>(it->second.get());
           if (d6d != NULL) {
             more_than_3_constraints = true;
