@@ -16,6 +16,7 @@
 #include "crocoddyl/multibody/impulse-base.hpp"
 #include "crocoddyl/multibody/contacts/multiple-contacts.hpp"
 #include "crocoddyl/multibody/contacts/contact-3d.hpp"
+#include "crocoddyl/multibody/contacts/contact-5d.hpp"
 #include "crocoddyl/multibody/contacts/contact-6d.hpp"
 #include "crocoddyl/multibody/impulses/multiple-impulses.hpp"
 #include "crocoddyl/multibody/impulses/impulse-3d.hpp"
@@ -217,6 +218,13 @@ struct ResidualDataContactCoPPositionTpl : public ResidualDataAbstractTpl<_Scala
             found_contact = true;
             contact = it->second;
             throw_pretty("Domain error: there isn't defined at least a 6d contact for " + frame_name);
+            break;
+          }
+          ContactData5DTpl<Scalar>* d5d = dynamic_cast<ContactData5DTpl<Scalar>*>(it->second.get());
+          if (d5d != NULL) {
+            found_contact = true;
+            contact = it->second;
+            throw_pretty("Domain info: defined 5d contact for " + frame_name);
             break;
           }
           ContactData6DTpl<Scalar>* d6d = dynamic_cast<ContactData6DTpl<Scalar>*>(it->second.get());

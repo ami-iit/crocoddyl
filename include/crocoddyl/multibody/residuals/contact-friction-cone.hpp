@@ -213,7 +213,7 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
             contact = it->second;
             break;
           }
-          throw_pretty("Domain error: there isn't defined at least a 3d contact for " + frame_name);
+          throw_pretty("(Cannot Enter)Domain error: there isn't defined at least a 3d contact for " + frame_name);
           break;
         }
       }
