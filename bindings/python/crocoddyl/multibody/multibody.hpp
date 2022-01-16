@@ -17,6 +17,7 @@ namespace python {
 
 void exposeFrames();
 void exposeFrictionCone();
+void exposeFrictionCopCone();
 void exposeWrenchCone();
 void exposeCoPSupport();
 void exposeStateMultibody();
@@ -40,6 +41,7 @@ void exposeResidualCoMPosition();
 void exposeResidualContactForce();
 void exposeResidualContactFrictionCone();
 void exposeResidualContactCoPPosition();
+void exposeResidualContactFrictionCopCone();
 void exposeResidualContactWrenchCone();
 void exposeResidualContactControlGrav();
 void exposeResidualControlGrav();
@@ -63,6 +65,7 @@ void exposeCostFrameTranslation();
 void exposeCostFrameRotation();
 void exposeCostFrameVelocity();
 void exposeCostContactForce();
+void exposeCostContactFrictionCopCone();
 void exposeCostContactWrenchCone();
 void exposeCostContactCoPPosition();
 void exposeCostContactFrictionCone();

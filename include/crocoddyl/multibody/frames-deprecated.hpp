@@ -18,6 +18,7 @@
 #include "crocoddyl/multibody/fwd.hpp"
 #include "crocoddyl/core/mathbase.hpp"
 #include "crocoddyl/multibody/friction-cone.hpp"
+#include "crocoddyl/multibody/frictioncop-cone.hpp"
 #include "crocoddyl/multibody/wrench-cone.hpp"
 #include "crocoddyl/core/utils/deprecate.hpp"
 
@@ -236,6 +237,34 @@ struct FrameFrictionConeTpl {
 };
 
 template <typename _Scalar>
+struct FrameFrictionCopConeTpl {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  typedef _Scalar Scalar;
+  typedef FrictionCopConeTpl<Scalar> FrictionCopCone;
+
+  DEPRECATED("Do not use FrameFrictionCopCone", explicit FrameFrictionCopConeTpl());
+  DEPRECATED("Do not use FrameFrictionCopCone", FrameFrictionCopConeTpl(const FrameFrictionCopConeTpl<Scalar>& other));
+  DEPRECATED("Do not use FrameFrictionCopCone", FrameFrictionCopConeTpl(const FrameIndex& id, const FrictionCopCone& cone));
+
+  friend std::ostream& operator<<(std::ostream& os, const FrameFrictionCopConeTpl& X) {
+    os << "  frame: " << X.id << std::endl << "cone: " << std::endl << X.cone << std::endl;
+    return os;
+  }
+
+  FrameFrictionCopConeTpl<Scalar>& operator=(const FrameFrictionCopConeTpl<Scalar>& other) {
+    if (this != &other) {
+      id = other.id;
+      cone = other.cone;
+    }
+    return *this;
+  }
+
+  FrameIndex id;
+  FrictionCopCone cone;
+};
+
+template <typename _Scalar>
 struct FrameWrenchConeTpl {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -401,6 +430,21 @@ template <typename Scalar>
 FrameFrictionConeTpl<Scalar>::FrameFrictionConeTpl(const FrameIndex& id, const FrictionCone& cone)
     : id(id), cone(cone) {
   std::cerr << "Deprecated: Do not use FrameFrictionCone." << std::endl;
+}
+
+template <typename Scalar>
+FrameFrictionCopConeTpl<Scalar>::FrameFrictionCopConeTpl() : id(0), cone(FrictionCopCone()) {
+  std::cerr << "Deprecated: Do not use FrameFrictionCopCone." << std::endl;
+}
+template <typename Scalar>
+FrameFrictionCopConeTpl<Scalar>::FrameFrictionCopConeTpl(const FrameFrictionCopConeTpl<Scalar>& other)
+    : id(other.id), cone(other.cone) {
+  std::cerr << "Deprecated: Do not use FrameFrictionCopCone." << std::endl;
+}
+template <typename Scalar>
+FrameFrictionCopConeTpl<Scalar>::FrameFrictionCopConeTpl(const FrameIndex& id, const FrictionCopCone& cone)
+    : id(id), cone(cone) {
+  std::cerr << "Deprecated: Do not use FrameFrictionCopCone." << std::endl;
 }
 
 template <typename Scalar>

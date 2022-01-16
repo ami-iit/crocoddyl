@@ -224,7 +224,6 @@ struct ResidualDataContactCoPPositionTpl : public ResidualDataAbstractTpl<_Scala
           if (d5d != NULL) {
             found_contact = true;
             contact = it->second;
-            throw_pretty("Domain info: defined 5d contact for " + frame_name);
             break;
           }
           ContactData6DTpl<Scalar>* d6d = dynamic_cast<ContactData6DTpl<Scalar>*>(it->second.get());

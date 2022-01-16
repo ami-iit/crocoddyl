@@ -82,6 +82,9 @@ template <typename Scalar>
 struct FrameFrictionConeTpl;
 
 template <typename Scalar>
+struct FrameFrictionCopConeTpl;
+
+template <typename Scalar>
 struct FrameWrenchConeTpl;
 
 template <typename Scalar>
@@ -112,6 +115,11 @@ template <typename Scalar>
 class ResidualModelContactCoPPositionTpl;
 template <typename Scalar>
 struct ResidualDataContactCoPPositionTpl;
+
+template <typename Scalar>
+class ResidualModelContactFrictionCopConeTpl;
+template <typename Scalar>
+struct ResidualDataContactFrictionCopConeTpl;
 
 template <typename Scalar>
 class ResidualModelContactWrenchConeTpl;
@@ -217,6 +225,11 @@ template <typename Scalar>
 using CostDataContactFrictionConeTpl = CostDataResidualTpl<Scalar>;
 
 template <typename Scalar>
+class CostModelContactFrictionCopConeTpl;
+template <typename Scalar>
+using CostDataContactFrictionCopConeTpl = CostDataResidualTpl<Scalar>;
+
+template <typename Scalar>
 class CostModelContactWrenchConeTpl;
 template <typename Scalar>
 using CostDataContactWrenchConeTpl = CostDataResidualTpl<Scalar>;
@@ -294,6 +307,8 @@ struct ContactData6DTpl;
 template <typename Scalar>
 class FrictionConeTpl;
 template <typename Scalar>
+class FrictionCopConeTpl;
+template <typename Scalar>
 class WrenchConeTpl;
 
 // cop support
@@ -369,6 +384,7 @@ typedef ContactModelNumDiffTpl<double> ContactModelNumDiff;
 typedef ContactDataNumDiffTpl<double> ContactDataNumDiff;
 
 typedef FrictionConeTpl<double> FrictionCone;
+typedef FrictionCopConeTpl<double> FrictionCopCone;
 typedef WrenchConeTpl<double> WrenchCone;
 typedef CoPSupportTpl<double> CoPSupport;
 
@@ -378,6 +394,7 @@ DEPRECATED("Do not use FramePlacement", typedef FramePlacementTpl<double> FrameP
 DEPRECATED("Do not use FrameMotion", typedef FrameMotionTpl<double> FrameMotion;)
 DEPRECATED("Do not use FrameForce", typedef FrameForceTpl<double> FrameForce;)
 DEPRECATED("Do not use FrameFrictionCone", typedef FrameFrictionConeTpl<double> FrameFrictionCone;)
+DEPRECATED("Do not use FrameFrictionCopCone", typedef FrameFrictionCopConeTpl<double> FrameFrictionCopCone;)
 DEPRECATED("Do not use FrameWrenchCone", typedef FrameWrenchConeTpl<double> FrameWrenchCone;)
 DEPRECATED("Do not use FrameCopSupport", typedef FrameCoPSupportTpl<double> FrameCoPSupport;)
 
@@ -391,6 +408,8 @@ typedef ResidualModelContactFrictionConeTpl<double> ResidualModelContactFriction
 typedef ResidualDataContactFrictionConeTpl<double> ResidualDataContactFrictionCone;
 typedef ResidualModelContactCoPPositionTpl<double> ResidualModelContactCoPPosition;
 typedef ResidualDataContactCoPPositionTpl<double> ResidualDataContactCoPPosition;
+typedef ResidualModelContactFrictionCopConeTpl<double> ResidualModelContactFrictionCopCone;
+typedef ResidualDataContactFrictionCopConeTpl<double> ResidualDataContactFrictionCopCone;
 typedef ResidualModelContactWrenchConeTpl<double> ResidualModelContactWrenchCone;
 typedef ResidualDataContactWrenchConeTpl<double> ResidualDataContactWrenchCone;
 typedef ResidualModelContactControlGravTpl<double> ResidualModelContactControlGrav;
@@ -450,6 +469,9 @@ DEPRECATED("Use ResidualDataCoPPosition", typedef CostDataResidualTpl<double> Co
 DEPRECATED("Use ResidualModelContactFrictionCone with CostModelResidual",
            typedef CostModelContactFrictionConeTpl<double> CostModelContactFrictionCone;)
 DEPRECATED("Use ResidualDataContactFrictionCone", typedef CostDataResidualTpl<double> CostDataContactFrictionCone;)
+DEPRECATED("Use ResidualModelContactFrictionCopCone with CostModelResidual",
+           typedef CostModelContactFrictionCopConeTpl<double> CostModelContactFrictionCopCone;)
+DEPRECATED("Use ResidualDataContactFrictionCopCone", typedef CostDataResidualTpl<double> CostDataContactFrictionCopCone;)
 DEPRECATED("Use ResidualModelContactWrenchCone with CostModelResidual",
            typedef CostModelContactWrenchConeTpl<double> CostModelContactWrenchCone;)
 DEPRECATED("Use ResidualDataContactWrenchCone", typedef CostDataResidualTpl<double> CostDataContactWrenchCone;)

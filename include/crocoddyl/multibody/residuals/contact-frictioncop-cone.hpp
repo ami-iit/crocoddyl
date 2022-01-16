@@ -1,13 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2019-2021, LAAS-CNRS, University of Edinburgh
+// Copyright (C) 2020-2021, University of Edinburgh
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef CROCODDYL_MULTIBODY_RESIDUALS_CONTACT_FRICTION_CONE_HPP_
-#define CROCODDYL_MULTIBODY_RESIDUALS_CONTACT_FRICTION_CONE_HPP_
+#ifndef CROCODDYL_MULTIBODY_RESIDUALS_CONTACT_FRICTIONCOP_CONE_HPP_
+#define CROCODDYL_MULTIBODY_RESIDUALS_CONTACT_FRICTIONCOP_CONE_HPP_
 
 #include "crocoddyl/multibody/fwd.hpp"
 #include "crocoddyl/core/residual-base.hpp"
@@ -23,78 +23,80 @@
 #include "crocoddyl/multibody/impulses/impulse-6d.hpp"
 #include "crocoddyl/multibody/data/contacts.hpp"
 #include "crocoddyl/multibody/data/impulses.hpp"
-#include "crocoddyl/multibody/friction-cone.hpp"
+#include "crocoddyl/multibody/frictioncop-cone.hpp"
 #include "crocoddyl/core/utils/exception.hpp"
 
 namespace crocoddyl {
 
 /**
- * @brief Contact friction cone residual
+ * @brief Contact friction-cop cone residual function
  *
- * This residual function is defined as \f$\mathbf{r}=\mathbf{A}\boldsymbol{\lambda}\f$, where
- * \f$\mathbf{A}\in~\mathbb{R}^{nr\times nc}\f$ describes the linearized friction cone,
- * \f$\boldsymbol{\lambda}\in~\mathbb{R}^{nc}\f$ is the spatial contact forces computed by
- * `DifferentialActionModelContactFwdDynamicsTpl`, and `nr`, `nc` are the number of cone facets and dimension of the
- * contact, respectively.
+ * This residual function is defined as \f$\mathbf{r}=\mathbf{A}\boldsymbol{\lambda}\f$,
+ * where \f$\mathbf{A}\f$ is the inequality matrix defined by the contact friction-cop cone, and \f$\boldsymbol{\lambda}\f$
+ * is the current spatial forces. The current spatial forces \f$\boldsymbol{\lambda}\in\mathbb{R}^{nc}\f$ is computed
+ * by `DifferentialActionModelContactFwdDynamicsTpl` or `ActionModelImpulseFwdDynamicTpl`, with `nc` as the dimension
+ * of the contact.
  *
- * Both residual and residual Jacobians are computed analytically, where th force vector \f$\boldsymbol{\lambda}\f$ and
- * its Jacobians \f$\left(\frac{\partial\boldsymbol{\lambda}}{\partial\mathbf{x}},
+ * Both residual and residual Jacobians are computed analytically, where the force vector \f$\boldsymbol{\lambda}\f$
+ * and its Jacobians \f$\left(\frac{\partial\boldsymbol{\lambda}}{\partial\mathbf{x}},
  * \frac{\partial\boldsymbol{\lambda}}{\partial\mathbf{u}}\right)\f$ are computed by
- * `DifferentialActionModelContactFwdDynamicsTpl`  or `ActionModelImpulseFwdDynamicTpl`. These values are stored in a
- * shared data (i.e. `DataCollectorContactTpl`  or `DataCollectorImpulseTpl`). Note that this residual function cannot
+ * `DifferentialActionModelContactFwdDynamicsTpl` or `ActionModelImpulseFwdDynamicTpl`. These values are stored in a
+ * shared data (i.e., `DataCollectorContactTpl` or `DataCollectorImpulseTpl`). Note that this residual function cannot
  * be used with other action models.
- *
- * As described in `ResidualModelAbstractTpl()`, the residual value and its derivatives are calculated by `calc` and
- * `calcDiff`, respectively.
  *
  * \sa `ResidualModelAbstractTpl`, `calc()`, `calcDiff()`, `createData()`,
  * `DifferentialActionModelContactFwdDynamicsTpl`, `ActionModelImpulseFwdDynamicTpl`, `DataCollectorForceTpl`
  */
 template <typename _Scalar>
-class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Scalar> {
+class ResidualModelContactFrictionCopConeTpl : public ResidualModelAbstractTpl<_Scalar> {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   typedef _Scalar Scalar;
   typedef MathBaseTpl<Scalar> MathBase;
   typedef ResidualModelAbstractTpl<Scalar> Base;
-  typedef ResidualDataContactFrictionConeTpl<Scalar> Data;
+  typedef ResidualDataContactFrictionCopConeTpl<Scalar> Data;
   typedef StateMultibodyTpl<Scalar> StateMultibody;
   typedef ResidualDataAbstractTpl<Scalar> ResidualDataAbstract;
   typedef DataCollectorAbstractTpl<Scalar> DataCollectorAbstract;
-  typedef FrictionConeTpl<Scalar> FrictionCone;
+  typedef FrictionCopConeTpl<Scalar> FrictionCopCone;
   typedef typename MathBase::VectorXs VectorXs;
   typedef typename MathBase::MatrixXs MatrixXs;
-  typedef typename MathBase::MatrixX3s MatrixX3s;
+  typedef typename MathBase::MatrixX6s MatrixX6s;
+  typedef typename MathBase::MatrixX5s MatrixX5s;
 
   /**
-   * @brief Initialize the contact friction cone residual model
+   * @brief Initialize the contact friction-cop cone residual model
    *
-   * @param[in] state  State of the multibody system
+   * @param[in] state  Multibody state
    * @param[in] id     Reference frame id
-   * @param[in] fref   Reference friction cone
-   * @param[in] nu     Dimension of the control vector
+   * @param[in] fref   Reference contact friction-cop cone
+   * @param[in] nu     Dimension of control vector
    */
-  ResidualModelContactFrictionConeTpl(boost::shared_ptr<StateMultibody> state, const pinocchio::FrameIndex id,
-                                      const FrictionCone& fref, const std::size_t nu);
+  ResidualModelContactFrictionCopConeTpl(boost::shared_ptr<StateMultibody> state, const pinocchio::FrameIndex id,
+                                    const FrictionCopCone& fref, const std::size_t nu);
 
   /**
-   * @brief Initialize the contact friction cone residual model
+   * @brief Initialize the contact friction-cop cone residual model
    *
-   * The default `nu` value is obtained from `StateAbstractTpl::get_nv()`.
+   * The default `nu` is obtained from `StateAbstractTpl::get_nv()`.
    *
-   * @param[in] state  State of the multibody system
+   * @param[in] state  Multibody state
    * @param[in] id     Reference frame id
-   * @param[in] fref   Reference friction cone
+   * @param[in] fref   Reference contact friction-cop cone
    */
-  ResidualModelContactFrictionConeTpl(boost::shared_ptr<StateMultibody> state, const pinocchio::FrameIndex id,
-                                      const FrictionCone& fref);
-  virtual ~ResidualModelContactFrictionConeTpl();
+  ResidualModelContactFrictionCopConeTpl(boost::shared_ptr<StateMultibody> state, const pinocchio::FrameIndex id,
+                                    const FrictionCopCone& fref);
+  virtual ~ResidualModelContactFrictionCopConeTpl();
 
   /**
-   * @brief Compute the contact friction cone residual
+   * @brief Compute the contact friction-cop cone residual
    *
-   * @param[in] data  Contact friction cone residual data
+   * The CoP residual is computed based on the \f$\mathbf{A}\f$ matrix, the force vector is computed by
+   * `DifferentialActionModelContactFwdDynamicsTpl` or `ActionModelImpulseFwdDynamicTpl` which is stored in
+   * `DataCollectorContactTpl` or `DataCollectorImpulseTpl`.
+   *
+   * @param[in] data  Contact force data
    * @param[in] x     State point \f$\mathbf{x}\in\mathbb{R}^{ndx}\f$
    * @param[in] u     Control input \f$\mathbf{u}\in\mathbb{R}^{nu}\f$
    */
@@ -102,9 +104,13 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
                     const Eigen::Ref<const VectorXs>& u);
 
   /**
-   * @brief Compute the Jacobians of the contact friction cone residual
+   * @brief Compute the derivatives of the contact friction-cop cone residual
    *
-   * @param[in] data  Contact friction cone residual data
+   * The CoP residual is computed based on the \f$\mathbf{A}\f$ matrix, the force vector is computed by
+   * `DifferentialActionModelContactFwdDynamicsTpl` or `ActionModelImpulseFwdDynamicTpl` which is stored in
+   * `DataCollectorContactTpl` or `DataCollectorImpulseTpl`.
+   *
+   * @param[in] data  Contact force data
    * @param[in] x     State point \f$\mathbf{x}\in\mathbb{R}^{ndx}\f$
    * @param[in] u     Control input \f$\mathbf{u}\in\mathbb{R}^{nu}\f$
    */
@@ -112,7 +118,10 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
                         const Eigen::Ref<const VectorXs>& u);
 
   /**
-   * @brief Create the contact friction cone residual data
+   * @brief Create the contact friction-cop cone residual data
+   *
+   * @param[in] data  shared data (it should be of type DataCollectorContactTpl)
+   * @return the residual data.
    */
   virtual boost::shared_ptr<ResidualDataAbstract> createData(DataCollectorAbstract* const data);
 
@@ -122,9 +131,9 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
   pinocchio::FrameIndex get_id() const;
 
   /**
-   * @brief Return the reference contact friction cone
+   * @brief Return the reference contact friction-cop cone
    */
-  const FrictionCone& get_reference() const;
+  const FrictionCopCone& get_reference() const;
 
   /**
    * @brief Modify the reference frame id
@@ -132,12 +141,12 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
   void set_id(const pinocchio::FrameIndex id);
 
   /**
-   * @brief Modify the reference contact friction cone
+   * @brief Modify the reference contact friction-cop cone
    */
-  void set_reference(const FrictionCone& reference);
+  void set_reference(const FrictionCopCone& reference);
 
   /**
-   * @brief Print relevant information of the contact-friction-cone residual
+   * @brief Print relevant information of the contact-friction-cop-cone residual
    *
    * @param[out] os  Output stream object
    */
@@ -150,11 +159,11 @@ class ResidualModelContactFrictionConeTpl : public ResidualModelAbstractTpl<_Sca
 
  private:
   pinocchio::FrameIndex id_;  //!< Reference frame id
-  FrictionCone fref_;         //!< Reference contact friction cone
+  FrictionCopCone fref_;           //!< Reference contact friction-cop cone
 };
 
 template <typename _Scalar>
-struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scalar> {
+struct ResidualDataContactFrictionCopConeTpl : public ResidualDataAbstractTpl<_Scalar> {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   typedef _Scalar Scalar;
@@ -167,8 +176,7 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
   typedef typename MathBase::MatrixXs MatrixXs;
 
   template <template <typename Scalar> class Model>
-  ResidualDataContactFrictionConeTpl(Model<Scalar>* const model, DataCollectorAbstract* const data)
-      : Base(model, data), more_than_3_constraints(false) {
+  ResidualDataContactFrictionCopConeTpl(Model<Scalar>* const model, DataCollectorAbstract* const data) : Base(model, data) {
     // Check that proper shared data has been passed
     bool is_contact = true;
     DataCollectorContactTpl<Scalar>* d1 = dynamic_cast<DataCollectorContactTpl<Scalar>*>(shared);
@@ -194,25 +202,22 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
           if (d3d != NULL) {
             found_contact = true;
             contact = it->second;
+            throw_pretty("Domain error: there isn't defined at least a 5d contact (just 3d) for " + frame_name);
             break;
           }
-
           ContactData5DTpl<Scalar>* d5d = dynamic_cast<ContactData5DTpl<Scalar>*>(it->second.get());
           if (d5d != NULL) {
-            more_than_3_constraints = true;
             found_contact = true;
             contact = it->second;
             break;
           }
-
           ContactData6DTpl<Scalar>* d6d = dynamic_cast<ContactData6DTpl<Scalar>*>(it->second.get());
           if (d6d != NULL) {
-            more_than_3_constraints = true;
             found_contact = true;
             contact = it->second;
             break;
           }
-          throw_pretty("(Cannot Enter)Domain error: there isn't defined at least a 3d contact for " + frame_name);
+          throw_pretty("Domain error: there isn't defined at least a 5d contact for " + frame_name);
           break;
         }
       }
@@ -224,16 +229,16 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
           if (d3d != NULL) {
             found_contact = true;
             contact = it->second;
+            throw_pretty("Domain error: there isn't defined at least a 5d contact for " + frame_name);
             break;
           }
           ImpulseData6DTpl<Scalar>* d6d = dynamic_cast<ImpulseData6DTpl<Scalar>*>(it->second.get());
           if (d6d != NULL) {
-            more_than_3_constraints = true;
             found_contact = true;
             contact = it->second;
             break;
           }
-          throw_pretty("Domain error: there isn't defined at least a 3d contact for " + frame_name);
+          throw_pretty("Domain error: there isn't defined at least a 5d contact for " + frame_name);
           break;
         }
       }
@@ -244,7 +249,6 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
   }
 
   boost::shared_ptr<ForceDataAbstractTpl<Scalar> > contact;  //!< Contact force data
-  bool more_than_3_constraints;                              //!< Label that indicates if the contact is bigger than 3D
   using Base::r;
   using Base::Ru;
   using Base::Rx;
@@ -256,6 +260,6 @@ struct ResidualDataContactFrictionConeTpl : public ResidualDataAbstractTpl<_Scal
 /* --- Details -------------------------------------------------------------- */
 /* --- Details -------------------------------------------------------------- */
 /* --- Details -------------------------------------------------------------- */
-#include "crocoddyl/multibody/residuals/contact-friction-cone.hxx"
+#include "crocoddyl/multibody/residuals/contact-frictioncop-cone.hxx"
 
-#endif  // CROCODDYL_MULTIBODY_RESIDUALS_CONTACT_FRICTION_CONE_HPP_
+#endif  // CROCODDYL_MULTIBODY_RESIDUALS_CONTACT_FRICTIONCOP_CONE_HPP_

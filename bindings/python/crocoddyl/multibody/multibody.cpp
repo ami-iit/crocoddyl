@@ -14,6 +14,7 @@ namespace python {
 void exposeMultibody() {
   exposeFrames();
   exposeFrictionCone();
+  exposeFrictionCopCone();
   exposeWrenchCone();
   exposeCoPSupport();
   exposeStateMultibody();
@@ -37,6 +38,7 @@ void exposeMultibody() {
   exposeResidualContactForce();
   exposeResidualContactFrictionCone();
   exposeResidualContactCoPPosition();
+  exposeResidualContactFrictionCopCone();
   exposeResidualContactWrenchCone();
   exposeResidualContactControlGrav();
   exposeResidualControlGrav();
@@ -60,6 +62,7 @@ void exposeMultibody() {
   exposeCostFrameRotation();
   exposeCostFrameVelocity();
   exposeCostContactForce();
+  exposeCostContactFrictionCopCone();
   exposeCostContactWrenchCone();
   exposeCostContactImpulse();
   exposeCostContactCoPPosition();
