@@ -67,6 +67,10 @@ void ResidualModelContactForceTpl<Scalar>::calcDiff(const boost::shared_ptr<Resi
       data->Rx = df_dx.template topRows<3>();
       data->Ru = df_du.template topRows<3>();
       break;
+    case Contact5D:
+      data->Rx = df_dx.template topRows<5>();
+      data->Ru = df_du.template topRows<5>();
+      break;
     case Contact6D:
       data->Rx = df_dx;
       data->Ru = df_du;
