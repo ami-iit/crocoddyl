@@ -10,13 +10,38 @@
 #include "crocoddyl/core/utils/math.hpp"
 #include "crocoddyl/multibody/actions/contact-fwddyn.hpp"
 
-#include <pinocchio/algorithm/compute-all-terms.hpp>
+//#include <pinocchio/algorithm/compute-all-terms.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/contact-dynamics.hpp>
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/rnea-derivatives.hpp>
 #include <pinocchio/algorithm/kinematics-derivatives.hpp>
+
+#include "pinocchio/multibody/model.hpp"
+#include "pinocchio/multibody/data.hpp"
+#include "pinocchio/algorithm/crba.hpp"
+//#include "pinocchio/algorithm/centroidal.hpp"
+//#include "pinocchio/algorithm/rnea.hpp"
+#include "pinocchio/algorithm/jacobian.hpp"
+#include "pinocchio/algorithm/center-of-mass.hpp"
+#include "pinocchio/algorithm/joint-configuration.hpp"
+#include "pinocchio/parsers/sample-models.hpp"
+#include "pinocchio/utils/timer.hpp"
+
+#include <iostream>
+
+/*
+//#define __SSE3__
+#include <fenv.h>
+
+#ifdef __SSE3__
+  #include <pmmintrin.h>
+#endif
+
+#include <boost/test/unit_test.hpp>
+#include <boost/utility/binary.hpp>
+*/
 
 namespace crocoddyl {
 
@@ -73,8 +98,26 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> q = x.head(state_->get_nq());
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> v = x.tail(state_->get_nv());
 
+  // Defining the external force
+  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df(pinocchio_.joints.size(), pinocchio::Force::Zero());
+  
+  pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
+  Eigen::Vector3d Frf(0.,0.,0.5); 
+  (fext_df[rf]).angular() = Frf;
+
   // Computing the forward dynamics with the holonomic constraints defined by the contact model
-  pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, v);
+  //pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, v);
+  pinocchio::forwardKinematics(pinocchio_, d->pinocchio, q, v);
+  pinocchio::crba(pinocchio_, d->pinocchio, q);
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+  pinocchio::computeJointJacobians(pinocchio_, d->pinocchio, q);
+  pinocchio::centerOfMass(pinocchio_, d->pinocchio, q, v);
+  pinocchio::jacobianCenterOfMass(pinocchio_, d->pinocchio, q);
+  pinocchio::ccrba(pinocchio_, d->pinocchio, q, v);
+  pinocchio::computeKineticEnergy(pinocchio_, d->pinocchio, q, v);
+  pinocchio::computePotentialEnergy(pinocchio_, d->pinocchio, q);
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, Eigen::VectorXd::Zero(state_->get_nv()), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+
   pinocchio::computeCentroidalMomentum(pinocchio_, d->pinocchio);
 
   if (!with_armature_) {
@@ -122,13 +165,14 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> v = x.tail(nv);
 
   Data* d = static_cast<Data*>(data.get());
+  d->Kinv.resize(nv + nc, nv + nc);
 
   // Computing the dynamics derivatives
   // We resize the Kinv matrix because Eigen cannot call block operations recursively:
   // https://eigen.tuxfamily.org/bz/show_bug.cgi?id=408.
   // Therefore, it is not possible to pass d->Kinv.topLeftCorner(nv + nc, nv + nc)
-  d->Kinv.resize(nv + nc, nv + nc);
-  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, d->multibody.contacts->fext);
+
+  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, d->multibody.contacts->fext); // d->multibody.contacts->fext + fext_df
   pinocchio::getKKTContactDynamicMatrixInverse(pinocchio_, d->pinocchio, d->multibody.contacts->Jc.topRows(nc),
                                                d->Kinv);
 
@@ -186,6 +230,13 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::quasiStatic(
   const std::size_t nv = state_->get_nv();
   const std::size_t nc = contacts_->get_nc();
 
+  // Defining the external force
+  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df(pinocchio_.joints.size(), pinocchio::Force::Zero());
+  
+  pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
+  Eigen::Vector3d Frf(0.,0.,0.5); 
+  (fext_df[rf]).angular() = Frf;
+
   // Check the velocity input is zero
   assert_pretty(x.tail(nv).isZero(), "The velocity input should be zero for quasi-static to work.");
 
@@ -193,9 +244,20 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::quasiStatic(
   d->tmp_xstatic.tail(nv).setZero();
   u.setZero();
 
-  pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  //pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  pinocchio::forwardKinematics(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  pinocchio::crba(pinocchio_, d->pinocchio, q);
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
   pinocchio::computeJointJacobians(pinocchio_, d->pinocchio, q);
-  pinocchio::rnea(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv), d->tmp_xstatic.tail(nv));
+  pinocchio::centerOfMass(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  pinocchio::jacobianCenterOfMass(pinocchio_, d->pinocchio, q);
+  pinocchio::ccrba(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  pinocchio::computeKineticEnergy(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  pinocchio::computePotentialEnergy(pinocchio_, d->pinocchio, q);
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, Eigen::VectorXd::Zero(state_->get_nv()), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+
+  pinocchio::computeJointJacobians(pinocchio_, d->pinocchio, q);
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv), d->tmp_xstatic.tail(nv), fext_df); //fext_df
   actuation_->calc(d->multibody.actuation, d->tmp_xstatic, u);
   actuation_->calcDiff(d->multibody.actuation, d->tmp_xstatic, u);
   contacts_->calc(d->multibody.contacts, d->tmp_xstatic);
