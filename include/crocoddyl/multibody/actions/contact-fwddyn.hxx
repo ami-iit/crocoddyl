@@ -26,10 +26,10 @@
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/algorithm/center-of-mass.hpp"
 #include "pinocchio/algorithm/joint-configuration.hpp"
-#include "pinocchio/parsers/sample-models.hpp"
-#include "pinocchio/utils/timer.hpp"
+//#include "pinocchio/parsers/sample-models.hpp"
+//#include "pinocchio/utils/timer.hpp"
 
-#include <iostream>
+//#include <iostream>
 
 /*
 //#define __SSE3__
@@ -102,21 +102,38 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df(pinocchio_.joints.size(), pinocchio::Force::Zero());
   
   pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
-  Eigen::Vector3d Frf(0.,0.,0.5); 
+  Eigen::Vector3d Frf(0.,0.,0.42); 
   (fext_df[rf]).angular() = Frf;
+  //std::cout << d->multibody.contacts->fext;
 
   // Computing the forward dynamics with the holonomic constraints defined by the contact model
-  //pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, v);
+  pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, v);
+  /*
   pinocchio::forwardKinematics(pinocchio_, d->pinocchio, q, v);
   pinocchio::crba(pinocchio_, d->pinocchio, q);
-  pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+  //pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+  pinocchio::nonLinearEffects(pinocchio_,d->pinocchio,q,v);
   pinocchio::computeJointJacobians(pinocchio_, d->pinocchio, q);
   pinocchio::centerOfMass(pinocchio_, d->pinocchio, q, v);
   pinocchio::jacobianCenterOfMass(pinocchio_, d->pinocchio, q);
   pinocchio::ccrba(pinocchio_, d->pinocchio, q, v);
   pinocchio::computeKineticEnergy(pinocchio_, d->pinocchio, q, v);
   pinocchio::computePotentialEnergy(pinocchio_, d->pinocchio, q);
-  pinocchio::rnea(pinocchio_, d->pinocchio, q, Eigen::VectorXd::Zero(state_->get_nv()), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+  //pinocchio::rnea(pinocchio_, d->pinocchio, q, Eigen::VectorXd::Zero(state_->get_nv()), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
+  pinocchio::computeGeneralizedGravity(pinocchio_, d->pinocchio, q);
+*/
+/*
+  pinocchio::nonLinearEffects(pinocchio_,d->pinocchio,q,v);
+  pinocchio::crba(pinocchio_,d->pinocchio,q);
+  pinocchio::getJacobianComFromCrba(pinocchio_, d->pinocchio);
+  pinocchio::computeJointJacobiansTimeVariation(pinocchio_,d->pinocchio,q,v);
+  pinocchio::centerOfMass(pinocchio_, d->pinocchio, q, v, true);
+  pinocchio::computeKineticEnergy(pinocchio_, d->pinocchio, q, v);
+  pinocchio::computePotentialEnergy(pinocchio_, d->pinocchio, q);
+  pinocchio::dccrba(pinocchio_, d->pinocchio, q, v);
+  pinocchio::computeGeneralizedGravity(pinocchio_, d->pinocchio, q);
+*/
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), fext_df);
 
   pinocchio::computeCentroidalMomentum(pinocchio_, d->pinocchio);
 
@@ -167,12 +184,21 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
   Data* d = static_cast<Data*>(data.get());
   d->Kinv.resize(nv + nc, nv + nc);
 
+  // Defining the external force
+  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df;
+  fext_df = d->multibody.contacts->fext;
+  pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
+  Eigen::Vector3d Frf(0.,0.,0.42); 
+  //(fext_df[rf]).angular() = Frf;
+  (fext_df[rf]).angular() = (d->multibody.contacts->fext[rf]).angular() + Frf;
+  //new_fext = d->multibody.contacts->fext + fext_df;
+
   // Computing the dynamics derivatives
   // We resize the Kinv matrix because Eigen cannot call block operations recursively:
   // https://eigen.tuxfamily.org/bz/show_bug.cgi?id=408.
   // Therefore, it is not possible to pass d->Kinv.topLeftCorner(nv + nc, nv + nc)
 
-  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, d->multibody.contacts->fext); // d->multibody.contacts->fext + fext_df
+  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, fext_df); // d->multibody.contacts->fext + fext_df
   pinocchio::getKKTContactDynamicMatrixInverse(pinocchio_, d->pinocchio, d->multibody.contacts->Jc.topRows(nc),
                                                d->Kinv);
 
@@ -234,7 +260,7 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::quasiStatic(
   PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df(pinocchio_.joints.size(), pinocchio::Force::Zero());
   
   pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
-  Eigen::Vector3d Frf(0.,0.,0.5); 
+  Eigen::Vector3d Frf(0.,0.,0.42); // -tau clockwise torque, +tau counterclockwise torque
   (fext_df[rf]).angular() = Frf;
 
   // Check the velocity input is zero
@@ -244,7 +270,8 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::quasiStatic(
   d->tmp_xstatic.tail(nv).setZero();
   u.setZero();
 
-  //pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
+  /*
   pinocchio::forwardKinematics(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
   pinocchio::crba(pinocchio_, d->pinocchio, q);
   pinocchio::rnea(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
@@ -255,7 +282,7 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::quasiStatic(
   pinocchio::computeKineticEnergy(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv));
   pinocchio::computePotentialEnergy(pinocchio_, d->pinocchio, q);
   pinocchio::rnea(pinocchio_, d->pinocchio, q, Eigen::VectorXd::Zero(state_->get_nv()), Eigen::VectorXd::Zero(state_->get_nv()), fext_df); //fext_df
-
+*/
   pinocchio::computeJointJacobians(pinocchio_, d->pinocchio, q);
   pinocchio::rnea(pinocchio_, d->pinocchio, q, d->tmp_xstatic.tail(nv), d->tmp_xstatic.tail(nv), fext_df); //fext_df
   actuation_->calc(d->multibody.actuation, d->tmp_xstatic, u);
