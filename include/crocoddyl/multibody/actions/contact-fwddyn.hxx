@@ -102,7 +102,7 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df(pinocchio_.joints.size(), pinocchio::Force::Zero());
   
   pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
-  Eigen::Vector3d Frf(0.,0.,0.42); 
+  Eigen::Vector3d Frf(0.,0.,0.00041); 
   (fext_df[rf]).angular() = Frf;
   //std::cout << d->multibody.contacts->fext;
 
@@ -188,7 +188,7 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
   PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df;
   fext_df = d->multibody.contacts->fext;
   pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
-  Eigen::Vector3d Frf(0.,0.,0.42); 
+  Eigen::Vector3d Frf(0.,0.,0.00041); 
   //(fext_df[rf]).angular() = Frf;
   (fext_df[rf]).angular() = (d->multibody.contacts->fext[rf]).angular() + Frf;
   //new_fext = d->multibody.contacts->fext + fext_df;
@@ -260,7 +260,7 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::quasiStatic(
   PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df(pinocchio_.joints.size(), pinocchio::Force::Zero());
   
   pinocchio::JointIndex rf = pinocchio_.getJointId("R_AK_R");
-  Eigen::Vector3d Frf(0.,0.,0.42); // -tau clockwise torque, +tau counterclockwise torque
+  Eigen::Vector3d Frf(0.,0.,0.00041); // -tau clockwise torque, +tau counterclockwise torque
   (fext_df[rf]).angular() = Frf;
 
   // Check the velocity input is zero
