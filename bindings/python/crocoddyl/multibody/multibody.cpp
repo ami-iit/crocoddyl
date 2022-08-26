@@ -30,7 +30,9 @@ void exposeMultibody() {
   exposeDataCollectorContacts();
   exposeDataCollectorImpulses();
   exposeDifferentialActionFreeFwdDynamics();
+  exposeDifferentialActionFreeFwdDynamicsSEA();
   exposeDifferentialActionContactFwdDynamics();
+  exposeDifferentialActionContactFwdDynamicsSEA();
   exposeActionImpulseFwdDynamics();
   exposeResidualState();
   exposeResidualCentroidalMomentum();
