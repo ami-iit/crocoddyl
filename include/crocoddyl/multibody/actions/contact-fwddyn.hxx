@@ -18,6 +18,8 @@
 #include <pinocchio/algorithm/rnea-derivatives.hpp>
 #include <pinocchio/algorithm/kinematics-derivatives.hpp>
 
+#include <fstream>
+
 namespace crocoddyl {
 
 template <typename Scalar>
@@ -73,8 +75,33 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> q = x.head(state_->get_nq());
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> v = x.tail(state_->get_nv());
 
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+
+  // string SEAfilepath = "/home/andreatesta/src/isaac-wp1/SimulationAndControl/Control/app/robots/ISC4RM_ACTIVE_SUSPENSION_SEA/SEA_Information.csv";
+  // ifstream SEAinfo;
+  // SEAinfo.open(SEAfilepath);
+
+
+  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df;
+  fext_df = d->multibody.contacts->fext;
+  // std::cout << " f before: " << fext_df[r_sus] << std::endl;
+  Eigen::Vector3d Frf(0.,0.,4*q[r_sus+7] + 20*v[r_sus+6]); 
+  (fext_df[r_sus]).linear() = (d->multibody.contacts->fext[r_sus]).linear() - Frf;
+  Eigen::Vector3d Flf(0.,0.,4*q[l_sus+7] + 20*v[l_sus+6]); 
+  (fext_df[l_sus]).linear() = (d->multibody.contacts->fext[l_sus]).linear() - Flf;
+  // std::cout << " f after: " << fext_df[r_sus] << std::endl;
+
+  // std::cout << " tau before: " << d->multibody.actuation->tau[r_sus] << std::endl;
+  // std::cout << " q: " << q[r_sus + 7] << std::endl;
+  // std::cout << " v: " << v[r_sus + 6] << std::endl;
+  // d->multibody.actuation->tau[r_sus] -= (0.01*q[r_sus] + 0.01*v[r_sus]);
+  // d->multibody.actuation->tau[l_sus] -= (0.01*q[l_sus] + 0.01*v[l_sus]);
+  // std::cout << " tau after: " << d->multibody.actuation->tau[r_sus] << std::endl;
+
   // Computing the forward dynamics with the holonomic constraints defined by the contact model
   pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, v);
+  pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), fext_df);
   pinocchio::computeCentroidalMomentum(pinocchio_, d->pinocchio);
 
   if (!with_armature_) {
@@ -123,12 +150,22 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
 
   Data* d = static_cast<Data*>(data.get());
 
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+
+  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df;
+  fext_df = d->multibody.contacts->fext;
+  Eigen::Vector3d Frf(0.,0.,4*q[r_sus+7] + 20*v[r_sus+6]); 
+  (fext_df[r_sus]).linear() = (d->multibody.contacts->fext[r_sus]).linear() - Frf;
+  Eigen::Vector3d Flf(0.,0.,4*q[l_sus+7] + 20*v[l_sus+6]); //0.01 
+  (fext_df[l_sus]).linear() = (d->multibody.contacts->fext[l_sus]).linear() - Flf;
+
   // Computing the dynamics derivatives
   // We resize the Kinv matrix because Eigen cannot call block operations recursively:
   // https://eigen.tuxfamily.org/bz/show_bug.cgi?id=408.
   // Therefore, it is not possible to pass d->Kinv.topLeftCorner(nv + nc, nv + nc)
   d->Kinv.resize(nv + nc, nv + nc);
-  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, d->multibody.contacts->fext);
+  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, fext_df);
   pinocchio::getKKTContactDynamicMatrixInverse(pinocchio_, d->pinocchio, d->multibody.contacts->Jc.topRows(nc),
                                                d->Kinv);
 
