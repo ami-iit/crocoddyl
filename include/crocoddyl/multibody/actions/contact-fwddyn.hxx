@@ -74,40 +74,32 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   Data* d = static_cast<Data*>(data.get());
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> q = x.head(state_->get_nq());
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> v = x.tail(state_->get_nv());
-
-  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
-  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
-
-  // string SEAfilepath = "/home/andreatesta/src/isaac-wp1/SimulationAndControl/Control/app/robots/ISC4RM_ACTIVE_SUSPENSION_SEA/SEA_Information.csv";
-  // ifstream SEAinfo;
-  // SEAinfo.open(SEAfilepath);
-
-
-  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df;
-  fext_df = d->multibody.contacts->fext;
-  // std::cout << " f before: " << fext_df[r_sus] << std::endl;
-  Eigen::Vector3d Frf(0.,0.,4*q[r_sus+7] + 20*v[r_sus+6]); 
-  (fext_df[r_sus]).linear() = (d->multibody.contacts->fext[r_sus]).linear() - Frf;
-  Eigen::Vector3d Flf(0.,0.,4*q[l_sus+7] + 20*v[l_sus+6]); 
-  (fext_df[l_sus]).linear() = (d->multibody.contacts->fext[l_sus]).linear() - Flf;
-  // std::cout << " f after: " << fext_df[r_sus] << std::endl;
-
-  // std::cout << " tau before: " << d->multibody.actuation->tau[r_sus] << std::endl;
-  // std::cout << " q: " << q[r_sus + 7] << std::endl;
-  // std::cout << " v: " << v[r_sus + 6] << std::endl;
-  // d->multibody.actuation->tau[r_sus] -= (0.01*q[r_sus] + 0.01*v[r_sus]);
-  // d->multibody.actuation->tau[l_sus] -= (0.01*q[l_sus] + 0.01*v[l_sus]);
-  // std::cout << " tau after: " << d->multibody.actuation->tau[r_sus] << std::endl;
-
+  VectorXs u_new = u;
   // Computing the forward dynamics with the holonomic constraints defined by the contact model
   pinocchio::computeAllTerms(pinocchio_, d->pinocchio, q, v);
-  pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), fext_df);
+  // pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), d->multibody.contacts->fext);
   pinocchio::computeCentroidalMomentum(pinocchio_, d->pinocchio);
+
+  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+  pinocchio::JointIndex r_fake = pinocchio_.getJointId("right_suspension_joint_fake");
+  pinocchio::JointIndex l_fake = pinocchio_.getJointId("left_suspension_joint_fake");
+
+  Eigen::Vector3d r_set_f(0.,0.,4*(q[r_fake+5]-q[r_sus+5]) + 20*(v[r_fake+4]-v[r_sus+4]));
+  (d->multibody.contacts->fext[r_fake]).linear() -= r_set_f;
+  (d->multibody.contacts->fext[r_sus]).linear() += r_set_f;
+  Eigen::Vector3d l_set_f(0.,0.,4*(q[l_fake+5]-q[l_sus+5]) + 20*(v[l_fake+4]-v[l_sus+4]));
+  (d->multibody.contacts->fext[l_fake]).linear() -= l_set_f;
+  (d->multibody.contacts->fext[l_sus]).linear() += l_set_f;
+  //u_new[r_sus-2] = 0.;
+  //u_new[l_sus-2] = 0.;
+  }
 
   if (!with_armature_) {
     d->pinocchio.M.diagonal() += armature_;
   }
-  actuation_->calc(d->multibody.actuation, x, u);
+  actuation_->calc(d->multibody.actuation, x, u_new);
   contacts_->calc(d->multibody.contacts, x);
 
 #ifndef NDEBUG
@@ -123,10 +115,24 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
                              JMinvJt_damping_);
   d->xout = d->pinocchio.ddq;
   contacts_->updateAcceleration(d->multibody.contacts, d->pinocchio.ddq);
-  contacts_->updateForce(d->multibody.contacts, d->pinocchio.lambda_c);
+  contacts_->updateForce(d->multibody.contacts, d->pinocchio.lambda_c); // reset the contact forces
+
+  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+  pinocchio::JointIndex r_fake = pinocchio_.getJointId("right_suspension_joint_fake");
+  pinocchio::JointIndex l_fake = pinocchio_.getJointId("left_suspension_joint_fake");
+
+  Eigen::Vector3d r_set_f(0.,0.,4*(q[r_fake+5]-q[r_sus+5]) + 20*(v[r_fake+4]-v[r_sus+4]));
+  (d->multibody.contacts->fext[r_fake]).linear() -= r_set_f;
+  (d->multibody.contacts->fext[r_sus]).linear() += r_set_f;
+  Eigen::Vector3d l_set_f(0.,0.,4*(q[l_fake+5]-q[l_sus+5]) + 20*(v[l_fake+4]-v[l_sus+4]));
+  (d->multibody.contacts->fext[l_fake]).linear() -= l_set_f;
+  (d->multibody.contacts->fext[l_sus]).linear() += l_set_f;
+  }
 
   // Computing the cost value and residuals
-  costs_->calc(d->costs, x, u);
+  costs_->calc(d->costs, x, u_new);
   d->cost = d->costs->cost;
 }
 
@@ -147,30 +153,59 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
   const std::size_t nc = contacts_->get_nc();
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> q = x.head(state_->get_nq());
   const Eigen::VectorBlock<const Eigen::Ref<const VectorXs>, Eigen::Dynamic> v = x.tail(nv);
-
+  VectorXs u_new = u;
   Data* d = static_cast<Data*>(data.get());
 
+  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
   pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
   pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
-
-  PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext_df;
-  fext_df = d->multibody.contacts->fext;
-  Eigen::Vector3d Frf(0.,0.,4*q[r_sus+7] + 20*v[r_sus+6]); 
-  (fext_df[r_sus]).linear() = (d->multibody.contacts->fext[r_sus]).linear() - Frf;
-  Eigen::Vector3d Flf(0.,0.,4*q[l_sus+7] + 20*v[l_sus+6]); //0.01 
-  (fext_df[l_sus]).linear() = (d->multibody.contacts->fext[l_sus]).linear() - Flf;
+  u_new[r_sus-2] = 0.;
+  u_new[l_sus-2] = 0.;
+  }
 
   // Computing the dynamics derivatives
   // We resize the Kinv matrix because Eigen cannot call block operations recursively:
   // https://eigen.tuxfamily.org/bz/show_bug.cgi?id=408.
   // Therefore, it is not possible to pass d->Kinv.topLeftCorner(nv + nc, nv + nc)
   d->Kinv.resize(nv + nc, nv + nc);
-  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, fext_df);
+  pinocchio::computeRNEADerivatives(pinocchio_, d->pinocchio, q, v, d->xout, d->multibody.contacts->fext);
   pinocchio::getKKTContactDynamicMatrixInverse(pinocchio_, d->pinocchio, d->multibody.contacts->Jc.topRows(nc),
                                                d->Kinv);
 
-  actuation_->calcDiff(d->multibody.actuation, x, u);
+  actuation_->calcDiff(d->multibody.actuation, x, u_new);
   contacts_->calcDiff(d->multibody.contacts, x);
+
+  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+  //pinocchio::JointIndex r_fake = pinocchio_.getJointId("right_suspension_joint_fake");
+  //pinocchio::JointIndex l_fake = pinocchio_.getJointId("left_suspension_joint_fake");
+
+  d->multibody.actuation->tau[r_sus+4] = 0.;
+  d->multibody.actuation->tau[l_sus+4] = 0.;
+
+  //d->multibody.actuation->dtau_du(r_sus+4,r_sus-2)= 0.;
+  //d->multibody.actuation->dtau_du(l_sus+4,l_sus-2) = 0.;
+/*
+  d->multibody.actuation->dtau_dx(l_sus+4,l_fake+4) += 4;
+  d->multibody.actuation->dtau_dx(l_sus+4,l_fake+4+40) += 20;
+  d->multibody.actuation->dtau_dx(l_sus+4,l_sus+4) -= 4;
+  d->multibody.actuation->dtau_dx(l_sus+4,l_sus+4+40) -= 20;
+  d->multibody.actuation->dtau_dx(r_sus+4,r_fake+4) += 4;
+  d->multibody.actuation->dtau_dx(r_sus+4,r_fake+4+40) += 20;
+  d->multibody.actuation->dtau_dx(r_sus+4,r_sus+4) -= 4;
+  d->multibody.actuation->dtau_dx(r_sus+4,r_sus+4+40) -= 20;
+
+  d->multibody.actuation->dtau_dx(l_fake+4,l_fake+4) -= 4;
+  d->multibody.actuation->dtau_dx(l_fake+4,l_fake+4+40) -= 20;
+  d->multibody.actuation->dtau_dx(l_fake+4,l_sus+4) += 4;
+  d->multibody.actuation->dtau_dx(l_fake+4,l_sus+4+40) += 20;
+  d->multibody.actuation->dtau_dx(r_fake+4,r_fake+4) -= 4;
+  d->multibody.actuation->dtau_dx(r_fake+4,r_fake+4+40) -= 20;
+  d->multibody.actuation->dtau_dx(r_fake+4,r_sus+4) += 4;
+  d->multibody.actuation->dtau_dx(r_fake+4,r_sus+4+40) += 20;
+  */
+  }
 
   const Eigen::Block<MatrixXs> a_partial_dtau = d->Kinv.topLeftCorner(nv, nv);
   const Eigen::Block<MatrixXs> a_partial_da = d->Kinv.topRightCorner(nv, nc);
@@ -193,7 +228,7 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
     contacts_->updateAccelerationDiff(d->multibody.contacts, d->Fx.bottomRows(nv));
     contacts_->updateForceDiff(d->multibody.contacts, d->df_dx.topRows(nc), d->df_du.topRows(nc));
   }
-  costs_->calcDiff(d->costs, x, u);
+  costs_->calcDiff(d->costs, x, u_new);
 }
 
 template <typename Scalar>
