@@ -38,7 +38,8 @@ class DifferentialActionModelContactFwdDynamicsTpl : public DifferentialActionMo
   typedef typename MathBase::VectorXs VectorXs;
   typedef typename MathBase::MatrixXs MatrixXs;
 
-  DifferentialActionModelContactFwdDynamicsTpl(boost::shared_ptr<StateMultibody> state,
+  DifferentialActionModelContactFwdDynamicsTpl(bool SEA_active,
+                                               boost::shared_ptr<StateMultibody> state,
                                                boost::shared_ptr<ActuationModelAbstract> actuation,
                                                boost::shared_ptr<ContactModelMultiple> contacts,
                                                boost::shared_ptr<CostModelSum> costs,
@@ -65,6 +66,7 @@ class DifferentialActionModelContactFwdDynamicsTpl : public DifferentialActionMo
 
   void set_armature(const VectorXs& armature);
   void set_damping_factor(const Scalar damping);
+  int ccounterr = 0;
 
   /**
    * @brief Print relevant information of the contact forward-dynamics model
@@ -83,6 +85,7 @@ class DifferentialActionModelContactFwdDynamicsTpl : public DifferentialActionMo
   boost::shared_ptr<CostModelSum> costs_;
   pinocchio::ModelTpl<Scalar>& pinocchio_;
   bool with_armature_;
+  bool SEA_active_;
   VectorXs armature_;
   Scalar JMinvJt_damping_;
   bool enable_force_;
@@ -115,6 +118,12 @@ struct DifferentialActionDataContactFwdDynamicsTpl : public DifferentialActionDa
     df_du.setZero();
     tmp_xstatic.setZero();
     tmp_Jstatic.setZero();
+    s0_r = 0;
+    ds0_r = 0;
+    dds0_r = 0;
+    s0_l = 0;
+    ds0_l = 0;
+    dds0_l = 0;
     pinocchio.lambda_c.resize(model->get_contacts()->get_nc_total());
     pinocchio.lambda_c.setZero();
   }
@@ -127,6 +136,12 @@ struct DifferentialActionDataContactFwdDynamicsTpl : public DifferentialActionDa
   MatrixXs df_du;
   VectorXs tmp_xstatic;
   MatrixXs tmp_Jstatic;
+  double s0_r;
+  double ds0_r;
+  double dds0_r;
+  double s0_l;
+  double ds0_l;
+  double dds0_l;
 
   using Base::cost;
   using Base::Fu;

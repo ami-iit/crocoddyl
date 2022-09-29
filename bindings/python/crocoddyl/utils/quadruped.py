@@ -454,7 +454,7 @@ class SimpleQuadrupedalGaitProblem:
 
         # Creating the action model for the KKT dynamics with simpletic Euler
         # integration scheme
-        dmodel = crocoddyl.DifferentialActionModelContactFwdDynamics(self.state, self.actuation, contactModel,
+        dmodel = crocoddyl.DifferentialActionModelContactFwdDynamics(0, self.state, self.actuation, contactModel,
                                                                      costModel, 0., True)
         model = crocoddyl.IntegratedActionModelEuler(dmodel, timeStep)
         return model
@@ -519,7 +519,7 @@ class SimpleQuadrupedalGaitProblem:
 
         # Creating the action model for the KKT dynamics with simpletic Euler
         # integration scheme
-        dmodel = crocoddyl.DifferentialActionModelContactFwdDynamics(self.state, self.actuation, contactModel,
+        dmodel = crocoddyl.DifferentialActionModelContactFwdDynamics(0, self.state, self.actuation, contactModel,
                                                                      costModel, 0., True)
         model = crocoddyl.IntegratedActionModelEuler(dmodel, 0.)
         return model

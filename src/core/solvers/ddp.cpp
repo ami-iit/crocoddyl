@@ -310,7 +310,13 @@ void SolverDDP::forwardPass(const double steplength) {
       us_try_[t].head(nu).noalias() = us_[t].head(nu);
       us_try_[t].head(nu).noalias() -= k_[t].head(nu) * steplength;
       us_try_[t].head(nu).noalias() -= K_[t].topRows(nu) * dx_[t];
+
       m->calc(d, xs_try_[t], us_try_[t].head(nu));
+      typedef IntegratedActionDataEulerTpl<Scalar> Data;
+      boost::shared_ptr<Data> d_ = boost::static_pointer_cast<Data>(d);
+      //std::cout << xs_try_[t].head(39) << " position for \n";
+      //std::cout << xs_try_[t].tail(38) << " velocity for \n";
+      std::cout << d_->differential->s0_r << " position for \n";
     } else {
       m->calc(d, xs_try_[t]);
     }

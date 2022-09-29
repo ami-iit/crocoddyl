@@ -213,7 +213,7 @@ boost::shared_ptr<crocoddyl::ActionModelAbstract> SimpleQuadrupedGaitProblem::cr
 
   // Creating the action model for the KKT dynamics with simpletic Euler integration scheme
   boost::shared_ptr<crocoddyl::DifferentialActionModelAbstract> dmodel =
-      boost::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(state_, actuation_, contact_model,
+      boost::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(0, state_, actuation_, contact_model,
                                                                                cost_model);
   return boost::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, timestep);
 }
@@ -279,7 +279,7 @@ boost::shared_ptr<crocoddyl::ActionModelAbstract> SimpleQuadrupedGaitProblem::cr
 
   // Creating the action model for the KKT dynamics with simpletic Euler integration scheme
   boost::shared_ptr<crocoddyl::DifferentialActionModelAbstract> dmodel =
-      boost::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(state_, actuation_, contact_model,
+      boost::make_shared<crocoddyl::DifferentialActionModelContactFwdDynamics>(0, state_, actuation_, contact_model,
                                                                                cost_model);
   return boost::make_shared<crocoddyl::IntegratedActionModelEuler>(dmodel, 0.);
 }
