@@ -44,6 +44,17 @@ class DifferentialActionModelContactFwdDynamicsTpl : public DifferentialActionMo
                                                boost::shared_ptr<CostModelSum> costs,
                                                const Scalar JMinvJt_damping = Scalar(0.),
                                                const bool enable_force = false);
+
+  DifferentialActionModelContactFwdDynamicsTpl(const std::string suspension_right,
+                                               const std::string suspension_left,
+                                               const std::string motor_right,
+                                               const std::string motor_left,
+                                               boost::shared_ptr<StateMultibody> state,
+                                               boost::shared_ptr<ActuationModelAbstract> actuation,
+                                               boost::shared_ptr<ContactModelMultiple> contacts,
+                                               boost::shared_ptr<CostModelSum> costs,
+                                               const Scalar JMinvJt_damping = Scalar(0.),
+                                               const bool enable_force = false);
   virtual ~DifferentialActionModelContactFwdDynamicsTpl();
 
   virtual void calc(const boost::shared_ptr<DifferentialActionDataAbstract>& data, const Eigen::Ref<const VectorXs>& x,
@@ -78,6 +89,10 @@ class DifferentialActionModelContactFwdDynamicsTpl : public DifferentialActionMo
   using Base::state_;  //!< Model of the state
 
  private:
+  const std::string suspension_right_;
+  const std::string suspension_left_;
+  const std::string motor_right_;
+  const std::string motor_left_;
   boost::shared_ptr<ActuationModelAbstract> actuation_;
   boost::shared_ptr<ContactModelMultiple> contacts_;
   boost::shared_ptr<CostModelSum> costs_;

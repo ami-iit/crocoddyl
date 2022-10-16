@@ -35,7 +35,45 @@ DifferentialActionModelContactFwdDynamicsTpl<Scalar>::DifferentialActionModelCon
       with_armature_(true),
       armature_(VectorXs::Zero(state->get_nv())),
       JMinvJt_damping_(fabs(JMinvJt_damping)),
-      enable_force_(enable_force) {
+      enable_force_(enable_force){
+  if (JMinvJt_damping_ < Scalar(0.)) {
+    JMinvJt_damping_ = Scalar(0.);
+    throw_pretty("Invalid argument: "
+                 << "The damping factor has to be positive, set to 0");
+  }
+  if (contacts_->get_nu() != nu_) {
+    throw_pretty("Invalid argument: "
+                 << "Contacts doesn't have the same control dimension (it should be " + std::to_string(nu_) + ")");
+  }
+  if (costs_->get_nu() != nu_) {
+    throw_pretty("Invalid argument: "
+                 << "Costs doesn't have the same control dimension (it should be " + std::to_string(nu_) + ")");
+  }
+
+  Base::set_u_lb(Scalar(-1.) * pinocchio_.effortLimit.tail(nu_));
+  Base::set_u_ub(Scalar(+1.) * pinocchio_.effortLimit.tail(nu_));
+}
+
+template <typename Scalar>
+DifferentialActionModelContactFwdDynamicsTpl<Scalar>::DifferentialActionModelContactFwdDynamicsTpl(
+    const std::string suspension_right, const std::string suspension_left,
+    const std::string motor_right, const std::string motor_left,
+    boost::shared_ptr<StateMultibody> state, boost::shared_ptr<ActuationModelAbstract> actuation,
+    boost::shared_ptr<ContactModelMultiple> contacts, boost::shared_ptr<CostModelSum> costs,
+    const Scalar JMinvJt_damping, const bool enable_force)
+    : Base(state, actuation->get_nu(), costs->get_nr()),
+      actuation_(actuation),
+      contacts_(contacts),
+      costs_(costs),
+      pinocchio_(*state->get_pinocchio().get()),
+      with_armature_(true),
+      armature_(VectorXs::Zero(state->get_nv())),
+      JMinvJt_damping_(fabs(JMinvJt_damping)),
+      enable_force_(enable_force),
+      suspension_right_(suspension_right),
+      suspension_left_(suspension_left),
+      motor_right_(motor_right),
+      motor_left_(motor_left){
   if (JMinvJt_damping_ < Scalar(0.)) {
     JMinvJt_damping_ = Scalar(0.);
     throw_pretty("Invalid argument: "
@@ -80,11 +118,11 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   // pinocchio::rnea(pinocchio_, d->pinocchio, q, v, Eigen::VectorXd::Zero(state_->get_nv()), d->multibody.contacts->fext);
   pinocchio::computeCentroidalMomentum(pinocchio_, d->pinocchio);
 
-  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
-  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
-  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
-  pinocchio::JointIndex r_fake = pinocchio_.getJointId("right_suspension_joint_fake");
-  pinocchio::JointIndex l_fake = pinocchio_.getJointId("left_suspension_joint_fake");
+  if (pinocchio_.existJointName(motor_right_)) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId(suspension_right_);
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId(suspension_left_);
+  pinocchio::JointIndex r_fake = pinocchio_.getJointId(motor_right_);
+  pinocchio::JointIndex l_fake = pinocchio_.getJointId(motor_left_);
 
   Eigen::Vector3d r_set_f(0.,0.,4*(q[r_fake+5]-q[r_sus+5]) + 20*(v[r_fake+4]-v[r_sus+4]));
   (d->multibody.contacts->fext[r_fake]).linear() -= r_set_f;
@@ -117,11 +155,11 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calc(
   contacts_->updateAcceleration(d->multibody.contacts, d->pinocchio.ddq);
   contacts_->updateForce(d->multibody.contacts, d->pinocchio.lambda_c); // reset the contact forces
 
-  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
-  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
-  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
-  pinocchio::JointIndex r_fake = pinocchio_.getJointId("right_suspension_joint_fake");
-  pinocchio::JointIndex l_fake = pinocchio_.getJointId("left_suspension_joint_fake");
+  if (pinocchio_.existJointName(motor_right_)) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId(suspension_right_);
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId(suspension_left_);
+  pinocchio::JointIndex r_fake = pinocchio_.getJointId(motor_right_);
+  pinocchio::JointIndex l_fake = pinocchio_.getJointId(motor_left_);
 
   Eigen::Vector3d r_set_f(0.,0.,4*(q[r_fake+5]-q[r_sus+5]) + 20*(v[r_fake+4]-v[r_sus+4]));
   (d->multibody.contacts->fext[r_fake]).linear() -= r_set_f;
@@ -156,9 +194,9 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
   VectorXs u_new = u;
   Data* d = static_cast<Data*>(data.get());
 
-  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
-  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
-  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+  if (pinocchio_.existJointName(motor_right_)) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId(suspension_right_);
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId(suspension_left_);
   u_new[r_sus-2] = 0.;
   u_new[l_sus-2] = 0.;
   }
@@ -175,9 +213,9 @@ void DifferentialActionModelContactFwdDynamicsTpl<Scalar>::calcDiff(
   actuation_->calcDiff(d->multibody.actuation, x, u_new);
   contacts_->calcDiff(d->multibody.contacts, x);
 
-  if (pinocchio_.existJointName("right_suspension_joint_fake")) {
-  pinocchio::JointIndex r_sus = pinocchio_.getJointId("right_suspension_joint");
-  pinocchio::JointIndex l_sus = pinocchio_.getJointId("left_suspension_joint");
+  if (pinocchio_.existJointName(motor_right_)) {
+  pinocchio::JointIndex r_sus = pinocchio_.getJointId(suspension_right_);
+  pinocchio::JointIndex l_sus = pinocchio_.getJointId(suspension_left_);
   //pinocchio::JointIndex r_fake = pinocchio_.getJointId("right_suspension_joint_fake");
   //pinocchio::JointIndex l_fake = pinocchio_.getJointId("left_suspension_joint_fake");
 

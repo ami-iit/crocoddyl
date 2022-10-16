@@ -36,6 +36,21 @@ void exposeDifferentialActionContactFwdDynamics() {
           ":param costs: stack of cost functions\n"
           ":param inv_damping: Damping factor for cholesky decomposition of JMinvJt (default 0.)\n"
           ":param enable_force: Enable the computation of force Jacobians (default False)"))
+      .def(bp::init<std::string, std::string, std::string, std::string, boost::shared_ptr<StateMultibody>, boost::shared_ptr<ActuationModelAbstract>,
+               boost::shared_ptr<ContactModelMultiple>, boost::shared_ptr<CostModelSum>, bp::optional<double, bool> >(
+          bp::args("self", "suspension_right", "suspension_left", "motor_right", "motor_left", "state", "actuation", "contacts", "costs", "inv_damping", "enable_force"),
+          "Initialize the constrained forward-dynamics action model.\n\n"
+          "The damping factor is needed when the contact Jacobian is not full-rank. Otherwise,\n"
+          "a good damping factor could be 1e-12. In addition, if you have cost based on forces,\n"
+          "you need to enable the computation of the force Jacobians (i.e. enable_force=True)."
+          ":param: suspensions: active suspension robot joints\n"
+          ":param: joints representing the motors actuating the active suspensions\n"
+          ":param state: multibody state\n"
+          ":param actuation: actuation model\n"
+          ":param contacts: multiple contact model\n"
+          ":param costs: stack of cost functions\n"
+          ":param inv_damping: Damping factor for cholesky decomposition of JMinvJt (default 0.)\n"
+          ":param enable_force: Enable the computation of force Jacobians (default False)"))
       .def<void (DifferentialActionModelContactFwdDynamics::*)(
           const boost::shared_ptr<DifferentialActionDataAbstract>&, const Eigen::Ref<const Eigen::VectorXd>&,
           const Eigen::Ref<const Eigen::VectorXd>&)>(
